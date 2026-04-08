@@ -1,13 +1,18 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-WORKDIR /src
-COPY marcenaria-inteligente-app.tar.gz /tmp/marcenaria-inteligente-app.tar.gz
-RUN mkdir -p /src/app && tar -xzf /tmp/marcenaria-inteligente-app.tar.gz -C /src/app
-WORKDIR /src/app/src/MarcenariaInteligente.CloudApi
-RUN dotnet restore && dotnet publish -c Release -o /app/publish
+WORKDIR /workspace
+
+COPY marcenaria-inteligente-app.tar.gz ./
+RUN mkdir -p extracted && tar -xzf marcenaria-inteligente-app.tar.gz -C extracted
+
+WORKDIR /workspace/extracted/marcenaria-inteligente-railway
+RUN dotnet restore src/MarcenariaInteligente.CloudApi/MarcenariaInteligente.CloudApi.csproj
+RUN dotnet publish src/MarcenariaInteligente.CloudApi/MarcenariaInteligente.CloudApi.csproj -c Release -o /app/publish /p:UseAppHost=false
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
 COPY --from=build /app/publish ./
+
 ENV ASPNETCORE_URLS=http://0.0.0.0:8080
 EXPOSE 8080
-ENTRYPOINT ["sh", "-c", "ASPNETCORE_URLS=http://0.0.0.0:${PORT:-8080} dotnet MarcenariaInteligente.CloudApi.dll"]
+
+ENTRYPOINT ["dotnet", "MarcenariaInteligente.CloudApi.dll"]
